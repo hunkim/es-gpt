@@ -34,7 +34,7 @@ class ESGPT:
         self.tokenizer = tiktoken.get_encoding("cl100k_base")
 
     def index(self, doc_id, doc, text):
-        doc["embeddings_dict"] = self._create_emb_dict(text)
+        doc["embeddings_dict_list"] = self._create_emb_dict_list(text)
         self.es.index(index=self.index_name,
                       id=doc_id,
                       document=doc)
@@ -96,21 +96,23 @@ class ESGPT:
 
         return chunks
 
-    def _create_emb_dict(self, long_text):
+    def _create_emb_dict_list(self, long_text):
         shortened = self._split_into_many(long_text)
 
-        embeddings_dict = {}
+        embeddings_dict_list = []
 
         for text in shortened:
             n_tokens = len(self.tokenizer.encode(text))
             embeddings = openai.Embedding.create(
                 input=text,
                 engine='text-embedding-ada-002')['data'][0]['embedding']
+            embeddings_dict = {}
             embeddings_dict["text"] = text
             embeddings_dict["n_tokens"] = n_tokens
             embeddings_dict["embeddings"] = embeddings
+            embeddings_dict_list.append(embeddings_dict)
 
-        return embeddings_dict
+        return embeddings_dict_list
 
     def _create_context(self, question, df):
         """
@@ -170,9 +172,10 @@ class ESGPT:
             if input_token_len < self.max_tokens:
                 context = text_results
             else:
-                emb_dict = self._create_emb_dict(text_results)
+                emb_dict_list = self._create_emb_dict_list(text_results)
                 df = pd.DataFrame(columns=["text", "n_tokens", "embeddings"])
-                df = df.append(emb_dict, ignore_index=True)
+                for emb_dict in emb_dict_list:
+                    df = df.append(emb_dict, ignore_index=True)
 
                 context, input_token_len = self._create_context(
                     question=query,
@@ -186,13 +189,14 @@ class ESGPT:
             if input_token_len < self.max_tokens:
                 context = result_json_str
             else:
-                embeddings_dict_list = [hit['_source']['embeddings_dict']
-                                        for hit in es_results]
-
                 # Create a pandas DataFrame from the list of embeddings dictionaries
                 df = pd.DataFrame(columns=["text", "n_tokens", "embeddings"])
-                for embeddings_dict in embeddings_dict_list:
-                    df = df.append(embeddings_dict, ignore_index=True)
+
+                # extract embeddings_dict from es_results and append to the dataframe
+                for hit in es_results:
+                    embeddings_dict_list = hit['_source']['embeddings_dict_list']
+                    for embeddings_dict in embeddings_dict_list:
+                        df = df.append(embeddings_dict, ignore_index=True)
 
                 context, input_token_len = self._create_context(
                     question=query,

@@ -30,9 +30,9 @@ async def search(q: str):
 
 
 @app.post("/summary")
-async def summary(Request: Request):
+async def summary(request: Request):
 
-    payload = await Request.json()
+    payload = await request.json()
     q = payload["q"]
     text_results = payload.get("text_results", "")
 
@@ -41,8 +41,13 @@ async def summary(Request: Request):
         resp = es.gpt_answer(q, text_results=text_results)
     else:
         es_results = es.search(q)
-        resp = es.gpt_answer(q, es_results=es_results)
-
+        
+        if es_results:
+            # Generate summaries of the search results
+            resp = es.gpt_answer(q, es_results=es_results)
+        else:
+            resp = es.gpt_answer(q, text_results="No results found")
+            
     if resp.status_code != 200:
         raise HTTPException(resp.status_code, resp.text)
 
