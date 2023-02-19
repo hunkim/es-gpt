@@ -46,7 +46,7 @@ This will start the program and prompt you to enter a query. The program will th
 ### On-the-fly installation
 To use the on-the-fly installation, follow these steps:
 
-Add the following scripts to your search page. Specify the query, results, and gpt_answer output div IDs in your page:
+Add the following scripts to your search page. See `static/p.html`. Specify the query, results, and gpt_answer output div IDs in your page:
 ```html
 <script src="sse.js"></script>
 <script src="es-gpt.js"></script>
