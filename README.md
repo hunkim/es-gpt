@@ -28,25 +28,26 @@ To use the all-in-one installation, follow these steps:
 
 Clone this repository to your local machine.
 ```bash
-$ git clone 
+$ git clone https://github.com/hunkim/es-gpt.git
+$ cd es-gpt
 ```
 
-Modify the .env with your Elasticsearch and GPT3 credentials and crawl_index.py file to index your documents.
+Modify the .env for your Elasticsearch and GPT3 credentials and crawl_index.py file to index your documents.
 ```bash
 $make crawl
 ```
 
-Install the required dependencies by running the following command in your terminal:
+Then, this will run the backend server:
 ```bash
 $ make run
 ```
 
-This will start the program and prompt you to enter a query. The program will then intercept the Elasticsearch results and send them to GPT3 to provide a reasonable answer. This method is very fast, as the program embeds the GPT3 answers during indexing.
+Then, visit the backend server. The web page will then intercept the Elasticsearch results and send them to GPT3 to provide a reasonable answer. This method is very fast, as the program embeds documents during indexing.
 
 ### On-the-fly installation
 To use the on-the-fly installation, follow these steps:
 
-Add the following scripts to your search page. See `static/p.html`. Specify the query, results, and gpt_answer output div IDs in your page:
+Add the following scripts to your search page. See `static/p.html`. Specify the query, results, and gpt_answer output div IDs in your original search page:
 ```html
 <script src="sse.js"></script>
 <script src="es-gpt.js"></script>
@@ -56,14 +57,13 @@ window.addEventListener("load", function () {
 });
 </script>
 ```
-Modify the .env with your Elasticsearch and GPT3 credentials and crawl_index.py file to index your documents.
-
+Modify the .env with your Elasticsearch and GPT3 credentials.
 Install the required dependencies by running the following command in your terminal:
 ```
 $ make run
 ```
 
-Run your search application and enter a query. The program will intercept the HTML results and send them to GPT3 to provide a reasonable answer. This method is convenient, but slower, as the program embeds the GPT3 answers on-the-fly.
+Run your search web enter a query. The program will intercept the HTML results and send them to GPT3 to provide a reasonable answer. This method is convenient, but slower, as the program embeds the search results and query on-the-fly.
 
 ## Contributing
 We welcome contributions from the community! If you have ideas for how to improve the Elasticsearch + GPT3 Answerer, please open an issue or submit a pull request. We love hearing from fellow search enthusiasts!
