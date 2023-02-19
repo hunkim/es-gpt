@@ -5,6 +5,11 @@ This is a program that intercepts Elasticsearch results and sends them to GPT3 t
 
 It is designed to help users get more accurate and relevant answers to their queries, by leveraging the power of Elasticsearch and GPT3.
 
+## How it works
+See this diagram. 
+
+<img width="1489" alt="image" src="https://user-images.githubusercontent.com/901975/219938678-7f0b5dc3-226f-41e0-a59f-247547d54b9c.png">
+
 ## Installation
 To use this program, you will need to have access to both Elasticsearch and GPT3. You will also need to have Python installed on your system.
 
