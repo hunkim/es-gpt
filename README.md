@@ -1,5 +1,10 @@
 # Elasticsearch + GPT3 Answerer
-This is a program that intercepts Elasticsearch results and sends them to GPT3 to provide reasonable answers, similar to Bing + ChatGPT. 
+Want to turn your (elastic) search into something as hot as Bing + ChatGPT? Look no further than the Elasticsearch + GPT3 Answerer! Our program intercepts Elasticsearch results and sends them to GPT3 to provide accurate and relevant answers to your queries. Plus, it's just plain fun to use!
+
+## Features
+* ntercept Elasticsearch results and send them to GPT3 for more accurate answers
+* Two installation options: all-in-one and on-the-fly
+* Live demo available to see the program in action
 
 <img width="1650" alt="image" src="https://user-images.githubusercontent.com/901975/219938519-12c6d7af-2756-4e43-bf32-796ce7084a50.png">
 
@@ -16,7 +21,7 @@ See this diagram.
 <img width="1489" alt="image" src="https://user-images.githubusercontent.com/901975/219938678-7f0b5dc3-226f-41e0-a59f-247547d54b9c.png">
 
 ## Installation
-To use this program, you will need to have access to both Elasticsearch and GPT3. You will also need to have Python installed on your system.
+To use the Elasticsearch + GPT3 Answerer, you'll need to have access to both Elasticsearch and GPT3, as well as Python installed on your system. We offer two installation options:
 
 ### All-in-one installation
 To use the all-in-one installation, follow these steps:
@@ -27,9 +32,12 @@ $ git clone
 ```
 
 Modify the .env with your Elasticsearch and GPT3 credentials and crawl_index.py file to index your documents.
+```bash
+$make crawl
+```
 
 Install the required dependencies by running the following command in your terminal:
-```
+```bash
 $ make run
 ```
 
@@ -58,4 +66,7 @@ $ make run
 Run your search application and enter a query. The program will intercept the HTML results and send them to GPT3 to provide a reasonable answer. This method is convenient, but slower, as the program embeds the GPT3 answers on-the-fly.
 
 ## Contributing
-We welcome contributions from the community! If you have ideas for how to improve the Elasticsearch + GPT3 Answerer, please open an issue or submit a pull request.
+We welcome contributions from the community! If you have ideas for how to improve the Elasticsearch + GPT3 Answerer, please open an issue or submit a pull request. We love hearing from fellow search enthusiasts!
+
+## License
+This program is licensed under the MIT License
