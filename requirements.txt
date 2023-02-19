@@ -1,0 +1,13 @@
+scholarly
+certifi
+fastapi
+requests
+elasticsearch
+uvicorn
+tiktoken
+openai
+matplotlib
+plotly
+pandas
+scipy
+scikit-learn

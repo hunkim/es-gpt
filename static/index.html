@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Elastic search GPT</title>
+    <link rel="stylesheet" type="text/css" href="styles.css">
+    <script src="sse.js"></script>
+    <script>
+        async function search() {
+            const resultsElement = document.getElementById("results");
+            const query = document.getElementById("query").value;
+            const url = `/search?q=${encodeURIComponent(query)}`;
+            const eventSource = new EventSource(url);
+            var resultCount = 0;
+
+            eventSource.onerror = function (e) {
+                if (e.readyState == EventSource.CLOSED) {
+                    // Connection was closed.
+                }
+                eventSource.close();
+                if (resultCount == 0) {
+                    const item = document.createElement("div");
+                    item.classList.add("search-result");
+                    item.textContent = "No results found";
+                    resultsElement.appendChild(item);
+                }
+            };
+
+            eventSource.onmessage = function (event) {
+                if (!event.data || event.data == "[DONE]") {
+                    console.log("result count: " + result_count);
+                    eventSource.close();
+                }
+                const result = JSON.parse(event.data);
+                const item = document.createElement("div");
+                item.classList.add("search-result");
+
+                const title = document.createElement("b");
+                title.textContent = result._source.title;
+                item.appendChild(title);
+
+                const authors = document.createElement("p");
+                authors.textContent = `Authors: ${result._source.author}`;
+                item.appendChild(authors);
+
+                const abs = document.createElement("p");
+                abs.classList.add("abstract");
+                if ('abstract' in result._source) {
+                    abs.textContent = `${result._source.abstract.substring(0, 500)}...`;
+                } else {
+                    abs.textContent = "Abstract not available";
+                } item.appendChild(abs);
+
+                resultsElement.appendChild(item);
+            };
+        }
+
+        async function summarize() {
+            const summaryElement = document.getElementById("summary");
+            const query = document.getElementById("query").value;
+
+            const payload = {
+                q: query
+            };
+
+            const eventSource = new SSE("summary", { method: 'POST', payload: JSON.stringify(payload) });
+            eventSource.onmessage = function (event) {
+                if (!event.data || event.data == "[DONE]") {
+                    eventSource.close();
+                    return;
+                }
+                const result = JSON.parse(event.data);
+                summaryElement.innerHTML += result['choices'][0]['text'];
+            };
+
+            eventSource.stream();
+        }
+
+        async function clearResults() {
+            if (document.getElementById("results")) {
+                document.getElementById("results").innerHTML = "";
+            }
+            if (document.getElementById("summary")) {
+                document.getElementById("summary").innerHTML = "";
+            }
+        }
+
+        async function searchAndSummarize() {
+            clearResults();
+            search();
+            summarize();
+        }
+    </script>
+</head>
+
+<body>
+    <div id="search-container">
+        <h2>Elasticsearch with GPT (Sung's paper search)</h2>
+        <div class="search-input-container">
+            <input type="text" id="query" placeholder="Enter a query (eg: How long it will take to fix bugs?)"
+                onkeydown="if (event.key === 'Enter') searchAndSummarize()">
+            <button onclick="searchAndSummarize()">Search</button>
+        </div>
+    </div>
+    <div id="results-container">
+        <h3>Search Results</h3>
+        <div id="results"></div>
+    </div>
+    <div id="summary-container">
+        <h3>GPT Answer</h3>
+        <i>poor result due to text-ada-001</i>
+        <div id="summary"></div>
+    </div>
+    <i>Please contact hunkim@upsatage.ai for more information</i>
+</body>
+
+</html>

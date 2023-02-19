@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Summarize GPT</title>
+    <link rel="stylesheet" type="text/css" href="styles.css">
+
+    <script>
+        function search() {
+            const resultsElement = document.getElementById("results");
+            const query = document.getElementById("query").value;
+            const url = `/search?q=${encodeURIComponent(query)}`;
+            const eventSource = new EventSource(url);
+            var resultCount = 0;
+
+            const summaryElement = document.getElementById("summary");
+            if (summaryElement) {
+                summaryElement.innerHTML = "";
+            }
+            if (resultsElement) {
+                resultsElement.innerHTML = "";
+            }
+
+            eventSource.onerror = function (e) {
+                if (e.readyState == EventSource.CLOSED) {
+                    // Connection was closed.
+                }
+                eventSource.close();
+                if (resultCount == 0) {
+                    const item = document.createElement("div");
+                    item.classList.add("search-result");
+                    item.textContent = "No results found";
+                    resultsElement.appendChild(item);
+                }
+            };
+
+            eventSource.onmessage = function (event) {
+                if (!event.data || event.data == "[DONE]") {
+                    eventSource.close();
+                    return;
+                }
+                const result = JSON.parse(event.data);
+                const item = document.createElement("div");
+                item.classList.add("search-result");
+
+                const title = document.createElement("b");
+                title.textContent = result._source.title;
+                item.appendChild(title);
+
+                const authors = document.createElement("p");
+                authors.textContent = `Authors: ${result._source.author}`;
+                item.appendChild(authors);
+
+                const abs = document.createElement("p");
+                abs.classList.add("abstract");
+                abs.textContent = `${result._source.abstract.substring(0, 500)}...`;
+                item.appendChild(abs);
+
+                resultsElement.appendChild(item);
+                resultCount += 1;
+            };
+        }
+
+    </script>
+    <script src="sse.js"></script>
+    <script src="es-gpt.js"></script>
+    <script>
+        console.log("summarize.js loaded");
+        window.addEventListener("load", function () {
+            summarizeOnChange("query", "results", "gpt_answer");
+        });
+    </script>
+</head>
+
+
+<body>
+    <div id="search-container">
+        <h2>Elasticsearch with GPT (Sung's paper search)</h2>
+        <div class="search-input-container">
+            <input type="text" id="query" placeholder="Enter a query (eg: How long it will take to fix bugs?)"
+                onkeydown="if (event.key === 'Enter') search()">
+            <button onclick="search()">Search</button>
+        </div>
+    </div>
+    <div id="results-container">
+        <h3>Search Results</h3>
+        <div id="results"></div>
+    </div>
+    <div id="summary-container">
+        <h3>GPT Answer</h3>
+        <i>poor result due to text-ada-001</i>
+        <div id="gpt_answer"></div>
+    </div>
+    <i>Please contact hunkim@upsatage.ai for more information</i>
+</body>
+
+
+</html>
