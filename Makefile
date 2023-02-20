@@ -12,6 +12,9 @@ $(VENV)/bin/activate: requirements.txt
 	python3 -m venv $(VENV)
 	$(PIP) install -r requirements.txt
 
+emb: $(VENV)/bin/activate
+	$(PYTHON) emb.py
+	
 crawl: $(VENV)/bin/activate
 	$(PYTHON) crawl_index.py
 
@@ -20,6 +23,7 @@ esgpt: $(VENV)/bin/activate
 
 test: $(VENV)/bin/activate
 	$(PYTEST) --verbose es_gpt_test.py -s -vv
+
 app: $(VENV)/bin/activate
 	$(UVICORN) app:app --reload --port 7002
 

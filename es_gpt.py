@@ -9,6 +9,7 @@ from elasticsearch import Elasticsearch
 import tiktoken
 import openai
 from openai.embeddings_utils import distances_from_embeddings
+from emb import get_embedding
 
 
 ES_URL = os.environ["ES_URL"]
@@ -29,6 +30,7 @@ class ESGPT:
         self.api_key = os.environ["OPENAI_API_KEY"]
         openai.api_key = self.api_key
         self.max_tokens = 1000
+        self.split_max_tokens = 500
 
         # Load the cl100k_base tokenizer which is designed to work with the ada-002 model
         self.tokenizer = tiktoken.get_encoding("cl100k_base")
@@ -60,9 +62,9 @@ class ESGPT:
     # Function to split the text into chunks of a maximum number of tokens
     def _split_into_many(self, text):
         sentences = []
-        for sentence in text.split('.'):
+        for sentence in re.split(r'[{}]'.format(string.punctuation), text):
             sentence = sentence.strip()
-            if sentence and (any(char.isalpha() for char in sentence) or any(char.isdigit() for char in sentence)) and (not all(char in string.punctuation for char in sentence)):
+            if sentence and (any(char.isalpha() for char in sentence) or any(char.isdigit() for char in sentence)):
                 sentences.append(sentence)
 
         n_tokens = [len(self.tokenizer.encode(" " + sentence))
@@ -77,14 +79,14 @@ class ESGPT:
             # If the number of tokens so far plus the number of tokens in the current sentence is greater
             # than the max number of tokens, then add the chunk to the list of chunks and reset
             # the chunk and tokens so far
-            if tokens_so_far + token > self.max_tokens:
+            if tokens_so_far + token > self.split_max_tokens and chunk:
                 chunks.append(". ".join(chunk) + ".")
                 chunk = []
                 tokens_so_far = 0
 
             # If the number of tokens in the current sentence is greater than the max number of
             # tokens, go to the next sentence
-            if token > self.max_tokens:
+            if token > self.split_max_tokens:
                 continue
 
             # Otherwise, add the sentence to the chunk and add the number of tokens to the total
@@ -97,9 +99,6 @@ class ESGPT:
 
         return chunks
 
-    def _get_embedding(self, input):
-        return openai.Embedding.create(
-            input=input, engine='text-embedding-ada-002')['data'][0]['embedding']
 
     def _create_emb_dict_list(self, long_text):
         shortened = self._split_into_many(long_text)
@@ -108,7 +107,7 @@ class ESGPT:
 
         for text in shortened:
             n_tokens = len(self.tokenizer.encode(text))
-            embeddings = self._get_embedding(input=text)
+            embeddings = get_embedding(input=text)
             embeddings_dict = {}
             embeddings_dict["text"] = text
             embeddings_dict["n_tokens"] = n_tokens
@@ -123,7 +122,7 @@ class ESGPT:
         """
 
         # Get the embeddings for the question
-        q_embeddings = self._get_embedding(input=question)
+        q_embeddings = get_embedding(input=question)
 
         # Get the distances from the embeddings
         df['distances'] = distances_from_embeddings(

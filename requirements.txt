@@ -12,3 +12,4 @@ pandas
 scipy
 scikit-learn
 pytest
+sentence-transformers
