@@ -3,7 +3,7 @@ import json
 import requests
 import re
 import pandas as pd
-
+import string
 from elasticsearch import Elasticsearch
 
 import tiktoken
@@ -19,7 +19,7 @@ ES_CA_CERT = os.environ["ES_CA_CERT"]
 
 class ESGPT:
     def __init__(self, index_name):
-        self.es = Elasticsearch(ES_URL, http_auth=(ES_USER, ES_PASS),
+        self.es = Elasticsearch(ES_URL, basic_auth=(ES_USER, ES_PASS),
                                 ca_certs=ES_CA_CERT, verify_certs=True)
         self.index_name = index_name
 
@@ -59,11 +59,12 @@ class ESGPT:
     # Code from https://github.com/openai/openai-cookbook/blob/main/apps/web-crawl-q-and-a/web-qa.py
     # Function to split the text into chunks of a maximum number of tokens
     def _split_into_many(self, text):
+        sentences = []
+        for sentence in text.split('.'):
+            sentence = sentence.strip()
+            if sentence and (any(char.isalpha() for char in sentence) or any(char.isdigit() for char in sentence)) and (not all(char in string.punctuation for char in sentence)):
+                sentences.append(sentence)
 
-        # Split the text into sentences
-        sentences = text.split('. ')
-
-        # Get the number of tokens for each sentence
         n_tokens = [len(self.tokenizer.encode(" " + sentence))
                     for sentence in sentences]
 
@@ -96,6 +97,10 @@ class ESGPT:
 
         return chunks
 
+    def _get_embedding(self, input):
+        return openai.Embedding.create(
+            input=input, engine='text-embedding-ada-002')['data'][0]['embedding']
+
     def _create_emb_dict_list(self, long_text):
         shortened = self._split_into_many(long_text)
 
@@ -103,9 +108,7 @@ class ESGPT:
 
         for text in shortened:
             n_tokens = len(self.tokenizer.encode(text))
-            embeddings = openai.Embedding.create(
-                input=text,
-                engine='text-embedding-ada-002')['data'][0]['embedding']
+            embeddings = self._get_embedding(input=text)
             embeddings_dict = {}
             embeddings_dict["text"] = text
             embeddings_dict["n_tokens"] = n_tokens
@@ -120,8 +123,7 @@ class ESGPT:
         """
 
         # Get the embeddings for the question
-        q_embeddings = openai.Embedding.create(
-            input=question, engine='text-embedding-ada-002')['data'][0]['embedding']
+        q_embeddings = self._get_embedding(input=question)
 
         # Get the distances from the embeddings
         df['distances'] = distances_from_embeddings(
@@ -132,7 +134,6 @@ class ESGPT:
 
         # Sort by distance and add the text to the context until the context is too long
         for i, row in df.sort_values('distances', ascending=True).iterrows():
-
             # Add the length of the text to the current length
             cur_len += row['n_tokens'] + 4
 

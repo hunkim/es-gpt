@@ -11,3 +11,4 @@ plotly
 pandas
 scipy
 scikit-learn
+pytest

@@ -2,6 +2,7 @@ VENV = .venv
 PYTHON = $(VENV)/bin/python3
 PIP = $(VENV)/bin/pip3
 UVICORN = $(VENV)/bin/uvicorn
+PYTEST = $(VENV)/bin/pytest
 
 include .env
 export
@@ -17,6 +18,8 @@ crawl: $(VENV)/bin/activate
 esgpt: $(VENV)/bin/activate
 	$(PYTHON) es_gpt.py
 
+test: $(VENV)/bin/activate
+	$(PYTEST) --verbose es_gpt_test.py -s -vv
 app: $(VENV)/bin/activate
 	$(UVICORN) app:app --reload --port 7002
 
