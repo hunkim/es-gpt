@@ -13,7 +13,7 @@ It is designed to help users get more accurate and relevant answers to their que
 ## Live Demo
 ![ezgif-2-48b3807122](https://user-images.githubusercontent.com/901975/219939314-a8f8f63e-75f6-4805-a743-2b03ab410e0c.gif)
 
-Check out our live demo at https://es-gpt.sung.ai/ to see the Elasticsearch + GPT3 Answerer in action! Please note that the site may be unstable and we are currently using the text-ada-001 model for proof of concept, so the GPT answer may be poor. However, this demo shows the concept of how the Elasticsearch + GPT3 Answerer works.
+Check out our live demo at https://es-gpt.sung.devstage.ai/ to see the Elasticsearch + GPT3 Answerer in action! Please note that the site may be unstable and we are currently using the text-ada-001 model for proof of concept, so the GPT answer may be poor. However, this demo shows the concept of how the Elasticsearch + GPT3 Answerer works.
 
 ## How it works
 See this diagram. 
