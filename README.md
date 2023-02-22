@@ -2,7 +2,7 @@
 Want to turn your (elastic) search into something as hot as Bing + ChatGPT? Look no further than the Elasticsearch + GPT3 Answerer! Our program intercepts Elasticsearch results and sends them to GPT3 to provide accurate and relevant answers to your queries. Plus, it's just plain fun to use!
 
 ## Features
-* ntercept Elasticsearch results and send them to GPT3 for more accurate answers
+* Intercept Elasticsearch results and send them to GPT3 for more accurate answers
 * Two installation options: all-in-one and on-the-fly
 * Live demo available to see the program in action
 
