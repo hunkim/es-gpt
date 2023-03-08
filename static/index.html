@@ -3,7 +3,11 @@
 
 <head>
     <title>Elastic search GPT</title>
-    <link rel="stylesheet" type="text/css" href="styles.css">
+    <!-- <link rel="stylesheet" type="text/css" href="styles.css"> -->
+    <!-- <link href="https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css" rel="stylesheet"> -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="sse.js"></script>
     <script>
         async function search() {
@@ -25,7 +29,6 @@
                     resultsElement.appendChild(item);
                 }
             };
-
             eventSource.onmessage = function (event) {
                 if (!event.data || event.data == "[DONE]") {
                     console.log("result count: " + result_count);
@@ -33,7 +36,7 @@
                 }
                 const result = JSON.parse(event.data);
                 const item = document.createElement("div");
-                item.classList.add("search-result");
+                item.classList.add("search-result",  "mb-2", "pb-2", "border-b-2");
 
                 const title = document.createElement("b");
                 title.textContent = result._source.title;
@@ -62,39 +65,220 @@
             const payload = {
                 q: query
             };
-
             const eventSource = new SSE("summary", { method: 'POST', payload: JSON.stringify(payload) });
+            var responses = [];
+            var isVisible = false;
+            eventSource.onmessage = function (event) {
+                if (!event.data || event.data == "[DONE]") {
+                    eventSource.close();
+                    recommendQuestions();
+                    return;
+                }
+                const result = JSON.parse(event.data);
+                summaryElement.innerHTML += result['choices'][0]['text'];
+                if (!isVisible) {
+                    summaryElement.style.display = 'block';
+                }
+                responses.push(result['choices'][0]['text']);
+            };
+            eventSource.stream();
+        }
+
+        // 만들어봤는데 generation이 생각보다 별로네요... 우선 FE에서 로직을 제거합니다.
+        // abstract reference index for next question
+        // var referenceIdx = 0;
+        // async function questionSuggestion() {
+        //     if (document.getElementById("results")) {
+        //         const abstract = document.getElementById("results").childNodes[referenceIdx].lastChild.innerHTML;
+        //         const moreQuestionSuggestionElement = document.getElementById("more-question-suggestion");
+        //         const payload = {
+        //             "text_results": abstract
+        //         };
+
+        //         const eventSource = new SSE("question-suggestion", {method: 'POST', payload: JSON.stringify(payload)});
+        //         eventSource.onmessage = function (event) {
+        //             if (!event.data || event.data == "[DONE]") {
+        //                 eventSource.close();
+        //                 return;
+        //             }
+        //             const result = JSON.parse(event.data);
+        //             console.log(result);
+        //             moreQuestionSuggestionElement.innerHTML += result['choices'][0]['text'];
+        //         };
+        //         eventSource.stream();
+        //     }
+        // }
+
+        async function justQuestion() {
+            const query = document.getElementById("question").value;
+
+            const summaryElement = document.getElementById("summary-container");
+            const questionBlock = document.createElement("div");
+            questionBlock.classList.add("question-block", "mr-2", "my-3", "py-3", "px-4", "bg-blue-400", "rounded-bl-3xl", "rounded-tl-3xl", "rounded-tr-xl", "text-white");
+            questionBlock.innerText = query;
+            summaryElement.appendChild(questionBlock);
+
+            const answerBlock = document.createElement("div");
+            answerBlock.classList.add("answer-block", "ml-2", "my-3", "py-3", "px-4", "bg-gray-400", "rounded-br-3xl", "rounded-tr-3xl", "rounded-tl-xl", "text-white");
+            summaryElement.appendChild(answerBlock);
+            console.log(query);
+
+            const payload = {
+                q: query
+            };
+            const eventSource = new SSE("question", { method: 'POST', payload: JSON.stringify(payload) });
             eventSource.onmessage = function (event) {
                 if (!event.data || event.data == "[DONE]") {
                     eventSource.close();
                     return;
                 }
                 const result = JSON.parse(event.data);
-                summaryElement.innerHTML += result['choices'][0]['text'];
+                answerBlock.innerHTML += result['choices'][0]['text'];
             };
-
             eventSource.stream();
+
         }
 
         async function clearResults() {
+            // remove values
+            if (document.getElementById("query")) {
+                document.getElementById("query").value = null;
+            }
             if (document.getElementById("results")) {
                 document.getElementById("results").innerHTML = "";
             }
             if (document.getElementById("summary")) {
                 document.getElementById("summary").innerHTML = "";
             }
+            if (document.getElementsByClassName("question-block")) {
+                const elements = document.getElementsByClassName("question-block");
+                    while(elements.length > 0){
+                        elements[0].parentNode.removeChild(elements[0]);
+                    }
+            }
+            if (document.getElementsByClassName("answer-block")) {
+                const elements = document.getElementsByClassName("answer-block");
+                    while(elements.length > 0){
+                        elements[0].parentNode.removeChild(elements[0]);
+                    }
+            }
+
+            // make element disapper
+            if(document.getElementById("summary")) {
+                document.getElementById("summary").style.display = 'none';
+            }
+
+            if (document.getElementById("more-question-msg")) {
+                document.getElementById("more-question-msg").style.display = 'none';
+            }
+
+            if (document.getElementById("question-input-container")) {
+                document.getElementById("question-input-container").style.display = 'none';
+            }
+            isVisible = false;
+            i = 0;
         }
 
         async function searchAndSummarize() {
-            clearResults();
             search();
             summarize();
+            if (document.getElementById("question-input-container")) {
+                document.getElementById("question-input-container").style.display = 'block';
+            }
         }
+
+        // NOTE: i is declared outside of scope.
+        var i = 0;
+        function askForFurtherQuestion() {
+            const moreQuestionMsgElement = document.getElementById("more-question-msg");
+            moreQuestionMsgElement.style.display = 'block';
+            const txt = "Any other questions?";
+            const speed = 60;
+            if (i < txt.length) {
+                moreQuestionMsgElement.innerHTML += txt.charAt(i);
+                i++;
+                setTimeout(askForFurtherQuestion, speed);
+            }
+        }
+
+        function recommendQuestions() {
+            askForFurtherQuestion();
+            // questionSuggestion();
+        }
+
     </script>
 </head>
 
 <body>
-    <div id="search-container">
+    <div clas="flex flex-wrap">
+        <div id="search-container" class="bg-indigo-100 w-full p-4 flex-1">
+            <h2 class="text-4xl mb-2">Elasticsearch with GPT (Sung's paper search)</h2>
+
+            <div class="flex flex-row">
+                <div class="w-2/3">
+                    <input type="text" id="query"
+                    class="block w-full p-1 text-sm text-gray-900 border rounded-sm bg-gray-50 focus:ring-blue-300 focus:border-blue-300"
+                    placeholder="Enter a query (eg: How long it will take to fix bugs?)"
+                    onkeydown="if (event.key === 'Enter') searchAndSummarize()" >
+                </div>
+                <div class="px-4 ">
+                    <button onclick="searchAndSummarize()"
+                    class="text-white w-32 right-2.5 bottom-2.5 bg-indigo-700 font-medium rounded-lg text-sm px-4 py-2"
+                    on>Search</button>
+                </div>
+                <div class="px-4 ">
+                    <button onclick="clearResults()"
+                    class="text-white w-32 right-2.5 bottom-2.5 bg-gray-700 font-medium rounded-lg text-sm px-4 py-2"
+                    on>Clear</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex bg-gray-200">
+            <div id="results-container" class="p-5 w-3/5 box-border bg-gray-100">
+                <h3 class="text-2xl mb-2">Search results</h3>
+                <div id="results" class="overflow-y-scroll" style="max-height: 90vh;"></div>
+            </div>
+
+            <div id="summary-container" class="p-5 w-2/5 bg-gray-200 overflow-y-scroll" style="max-height: 80vh;">
+                <h3 class="text-2xl mb-2">Summaries</h3>
+                <div id="summary" class="hidden p-4 bg-gray-600 round-xl text-white">
+                </div>
+                <div id="more-question-msg" class="hidden ml-2 my-3 py-3 px-4 bg-gray-400 rounded-br-3xl rounded-tr-3xl rounded-tl-xl text-white"></div>
+                    <div id="question-input-container" class="hidden fixed bottom-14 right-0 w-2/5 p-4">
+                        <div>
+                            <div class="bg-gray-300 p-4">
+                                <input type="text"
+                                id="question"
+                                class="flex items-center h-10 w-full rounded px-3 text-sm text-black"
+                                placeholder="further questions..."
+                                onkeydown="if (event.key === 'Enter') justQuestion()">
+                            </div>
+                        </div>
+
+                    </div>
+
+
+                <!-- <div id="more-question-suggestion" class="ml-2 my-3 py-3 px-4 bg-gray-400 rounded-br-3xl rounded-tr-3xl rounded-tl-xl text-white"></div> -->
+            </div>
+        </div>
+      </div>
+    <footer class="fixed bottom-0 left-0 z-20 w-full p-4 bg-white border-t border-gray-200 shadow md:flex md:items-center md:justify-between md:p-6">
+        <span class="text-sm text-gray-500 sm:text-center dark:text-gray-400">Visit <a href="https://github.com/hunkim/es-gpt">https://github.com/hunkim/es-gpt</a> for more information.
+        </span>
+        <ul class="flex flex-wrap items-center mt-3 text-sm text-gray-500 dark:text-gray-400 sm:mt-0">
+            <li>
+                <a href="#" class="mr-4 hover:underline md:mr-6 ">About</a>
+            </li>
+            <li>
+                <a href="#" class="mr-4 hover:underline md:mr-6">Licensing</a>
+            </li>
+            <li>
+                <a href="#" class="hover:underline">Contact</a>
+            </li>
+        </ul>
+    </footer>
+    <!-- <div id="search-container">
         <h2>Elasticsearch with GPT (Sung's paper search)</h2>
         <div class="search-input-container">
             <input type="text" id="query" placeholder="Enter a query (eg: How long it will take to fix bugs?)"
@@ -106,12 +290,20 @@
         <h3>Search Results</h3>
         <div id="results"></div>
     </div>
-    <div id="summary-container">
+    <div id="summary-container" style="display: flex; flex-direction: column;">
         <h3>GPT Answer</h3>
-        <i>poor result due to text-ada-001</i>
+        <p><i>(poor result due to text-ada-001)</i></p>
         <div id="summary"></div>
+        <div id="more-question" style="display: none; margin-top: 16px;">
+            <input type="text" id="further-question" placeholder="More question?">
+            <button onclick="searchAndSummarize()">Ask up!</button>
+        </div>
     </div>
-    <i>Visit <a href="https://github.com/hunkim/es-gpt">https://github.com/hunkim/es-gpt</a> for more information</i>
+    <!-- <div id="suggestion-container">
+        <h3>GPT Suggestion</h3>
+        <i>poor result due to text-ada-001</i>
+        <div id="suggest"></div>
+    </div> -->
 </body>
 
 </html>
