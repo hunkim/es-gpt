@@ -35,6 +35,10 @@ class ESGPT:
         # Load the cl100k_base tokenizer which is designed to work with the ada-002 model
         self.tokenizer = tiktoken.get_encoding("cl100k_base")
 
+        self.answer_generation_prompt = "Based on the context below\"\n\nContext: {}\n\n---\n\nPlease provide concise answer for this questions: {}"
+        self.question_suggestion_prompt = "Based on the context below\"\n\nContext: {}\n\n---\n\nPlease recommend 3 more questions to be curious about {}"
+        self.just_question_prompt = "{}{}"
+
     def index(self, doc_id, doc, text):
         doc["embeddings_dict_list"] = self._create_emb_dict_list(text)
         self.es.index(index=self.index_name,
@@ -146,10 +150,17 @@ class ESGPT:
         # Return the context and the length of the context
         return "\n\n###\n\n".join(returns), cur_len
 
-    def _gpt_api_call(self, query, input_token_len, context):
+    def _gpt_api_call(self, query, input_token_len, context, call_type):
+        if call_type == "answer":
+            prompt = self.answer_generation_prompt
+        elif call_type == "question":
+            prompt = self.just_question_prompt
+        else:
+            prompt = self.question_suggestion_prompt
+
         body = {
             "model": self.model_engine,
-            "prompt": f"Based on the context below\"\n\nContext: {context}\n\n---\n\nPlease provide concise answer for this questions: {query}",
+            "prompt": prompt.format(context, query),
             "max_tokens": self.model_max_tokens - input_token_len,
             "n": 1,
             "temperature": 0.5,
@@ -164,6 +175,7 @@ class ESGPT:
                              data=json.dumps(body),
                              stream=True)
         return resp
+
 
     def gpt_answer(self, query, es_results=None, text_results=None):
         # Generate summaries for each search result
@@ -204,7 +216,32 @@ class ESGPT:
         else:
             assert False, "Must provide either es_results or text_results"
 
-        return self._gpt_api_call(query, input_token_len, context)
+        return self._gpt_api_call(query, input_token_len, context, call_type="answer")
+
+    def gpt_question_generator(self, text_results=None):
+        if text_results:
+            input_token_len = len(self.tokenizer.encode(text_results))
+            if input_token_len < self.max_tokens:
+                context = text_results
+            else:
+                context = text_results[:self.max_tokens]
+                input_token_len = self.max_tokens
+        else:
+            assert False, "Text results are not found"
+
+        return self._gpt_api_call("", input_token_len, context, call_type="suggestion")
+
+    def gpt_direct_answer(self, q):
+        input_token_len = len(self.tokenizer.encode(q))
+        if input_token_len < self.max_tokens:
+            query = q
+        else:
+            query = q[:self.max_tokens]
+            input_token_len = self.max_tokens
+        return self._gpt_api_call(q, input_token_len, "", call_type="question")
+
+
+
 
 
 # Example usage
